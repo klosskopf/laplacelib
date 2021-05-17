@@ -38,13 +38,13 @@ int main()
 
 	Graph graphA(2,0.01, 0.15, 40);
 
-	graphA.addinput(0, begrenzer);
-	graphA.addinput(1, Strecke);
-	adder.addinput(0, generator);
-	adder.addinput(1, Strecke);
-	Regler.addinput(0, adder);
-	begrenzer.addinput(0, Regler);
-	Strecke.addinput(0, begrenzer);
+	graphA.addinput(begrenzer);
+	graphA.addinput(Strecke);
+	adder.addinput(generator);
+	adder.addinput(Strecke);
+	Regler.addinput(adder);
+	begrenzer.addinput(Regler);
+	Strecke.addinput(begrenzer);
 	
 	while (Zeit::time<SIMDAUER)
 	{

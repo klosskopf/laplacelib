@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+#include <list>
 #include <iostream>
 #include <string.h>
 #include "Zeit.h"
@@ -8,22 +8,15 @@ class Block
 {
 protected:
 	double out=0;
-	std::vector<Block*> in;
-	static Defaultinblock Defaultin;
+	std::list<Block*> in;
 public:
 	virtual ~Block(){}
 	virtual void magic()=0;
-	virtual void addinput(int inputnr, Block& inputblock)
+	virtual void addinput(Block& inputblock)
 	{
-		in[inputnr] = &inputblock;
+		in.push_back(&inputblock);
 	};
 	double output()const { return out; };
-};
-
-class Defaultinblock :public Block
-{
-public:
-	void magic() {};
 };
 
 class System: public Block
@@ -45,7 +38,7 @@ private:
 	};
 
 public:
-	System() { in.push_back(&Defaultin); }
+	System() { }
 	virtual ~System() {
 		if (a != NULL)delete a;
 		if (b != NULL)delete b;
@@ -78,7 +71,7 @@ public:
 	void magic()
 	{
 		double newy;
-		calculated(u, in[0]->output(), 0, gradb);
+		if (in.size())calculated(u, in.front()->output(), 0, gradb);
 		newy = 0;
 		for (unsigned int koefb = 0; koefb < (gradb + 1); koefb++)
 		{
@@ -112,7 +105,6 @@ public:
 	{ 
 		if (chnr > 4)chnr = 4;
 		this->chnr = chnr;
-		for(unsigned int i=0; i<chnr; i++)in.push_back(&Defaultin);
 	};
 	void magic()
 	{
@@ -133,12 +125,14 @@ public:
 				{
 					outputpixel = " ";
 				}
-				for (unsigned int eingang=0; eingang<chnr;eingang++)
+				int eingang=0;
+				for (Block* block : in)
 				{
-					if (i == (int)(in.at(eingang)->output() / yaufloesung))
+					if (i == (int)(block->output() / yaufloesung))
 					{
 						outputpixel = chnnllkptbl[eingang];
 					}
+					eingang++;
 				}
 				std::cout << outputpixel;
 			}
@@ -153,7 +147,7 @@ public:
 		{
 			tdelay += Zeit::deltat;
 		}
-		out = in[0]->output();
+		if (in.size())out = in.front()->output();
 	}
 };
 
@@ -170,10 +164,6 @@ public:
 	void addparam(const unsigned int inputnr, const double* parameter)
 	{
 		in.clear();
-		for (unsigned int i = 0; i < inputnr; i++)
-		{
-			in.push_back(&Defaultin);
-		}
 		this->inputnr = inputnr;
 		this->parameter = new double[inputnr];
 		memcpy(this->parameter, parameter, (inputnr) * 8);
@@ -181,9 +171,11 @@ public:
 	void magic()
 	{
 		double zwischen = 0;
-		for (int i = 0; i < inputnr; i++)
+		int i=0;
+		for (Block* block : in)
 		{
-			zwischen += (parameter[i]*in[i]->output());
+			zwischen += (parameter[i]*block->output());
+			if (++i==inputnr) break;
 		}
 		out = zwischen;
 	}
@@ -197,12 +189,12 @@ private:
 	double max=10;
 	double min=10;
 public:
-	Begrenzer(const double min, const double max) : max(max), min(min) { in.push_back(&Defaultin); }
+	Begrenzer(const double min, const double max) : max(max), min(min) {}
 	virtual ~Begrenzer() {}
 	void magic()
 	{
-		double zwischen;
-		zwischen = in[0]->output();
+		double zwischen=0;
+		if (in.size())zwischen = in.front()->output();
 		if (zwischen > max)zwischen = max;
 		if (zwischen < min)zwischen = min;
 		out = zwischen;
