@@ -1,19 +1,19 @@
 VERSION = 1.0.0
 
-rtsim.out : laplace.h laplace.so main.cpp Zeit.h
+rtsim.out : laplace.h laplace.a main.cpp
 	g++ -Wall -Llaplace main.cpp -o rtsim.out
 
-laplace.so : laplace.so.${VERSION}
-	ln -s laplace.so.${VERSION} laplace.so
+laplace.a : laplace.a.${VERSION}
+	ln -s laplace.a.${VERSION} laplace.a
 
-laplace.so.${VERSION} : laplace.o
-	g++ -shared -fPIC -o laplace.so.${VERSION} laplace.o
+laplace.a.${VERSION} : laplace.o
+	g++ -static -o laplace.a.${VERSION} laplace.o
 
-laplace.o : laplace.cpp laplace.h Zeit.h
+laplace.o : laplace.cpp laplace.h
 	g++ -Wall -g -c laplace.cpp -o laplace.o
 
 clean:
-	rm -rf *.o *.so* rtsim
+	rm -rf *.o *.a* *.out
 
 
 
