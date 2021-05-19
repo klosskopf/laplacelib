@@ -67,11 +67,7 @@ void System::magic(double dt)
     out=y[0];
 }
 
-Graph::Graph(unsigned int chnr, double taufloesung, double yaufloesung, unsigned int ymax) : taufloesung(taufloesung), yaufloesung(yaufloesung), ymax(ymax)
-{ 
-    if (chnr > 4)chnr = 4;
-    this->chnr = chnr;
-}
+Graph::Graph(double taufloesung, double yaufloesung, unsigned int ymax) : taufloesung(taufloesung), yaufloesung(yaufloesung), ymax(ymax){}
 void Graph::magic(double dt)
 {
     time+=dt;
@@ -95,7 +91,7 @@ void Graph::magic(double dt)
             int eingang=0;
             for (Block* block : in)
             {
-                if (i == (int)(block->output() / yaufloesung))
+                if ((i == (int)(block->output() / yaufloesung)) && (eingang < 4))
                 {
                     outputpixel = chnnllkptbl[eingang];
                 }
@@ -117,6 +113,10 @@ void Graph::magic(double dt)
     if (in.size())out = in.front()->output();
 }
 
+void ADD::addinput(Block& inputblock)
+{
+    addinput(inputblock, 1);
+}
 void ADD::addinput(Block& inputblock, const double gain)
 {
     in.push_back(&inputblock);

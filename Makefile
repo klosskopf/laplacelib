@@ -1,21 +1,24 @@
 VERSION = 1.0.0
 
-rtsim.out : laplace.h laplace.a main.cpp
-	g++ -Wall -Llaplace main.cpp -o rtsim.out
+rtsim.out : laplace.h liblaplace.so main.cpp
+	g++ -L$(PWD) -Wall -o rtsim.out main.cpp -llaplace
 
-laplace.a : laplace.a.${VERSION}
-	ln -s laplace.a.${VERSION} laplace.a
+liblaplace.so : liblaplace.so.${VERSION}
+	ln -s -f liblaplace.so.${VERSION} liblaplace.so
 
-laplace.a.${VERSION} : laplace.o
-	g++ -static -o laplace.a.${VERSION} laplace.o
+liblaplace.so.${VERSION} : laplace.o
+	g++ -shared -o liblaplace.so.${VERSION} laplace.o
 
 laplace.o : laplace.cpp laplace.h
-	g++ -Wall -g -c laplace.cpp -o laplace.o
+	g++ -c -Wall -Werror -fpic laplace.cpp
 
 clean:
-	rm -rf *.o *.a* *.out
+	rm -rf *.o *.so* *.out
 
+install:
+	cp liblaplace.so /usr/lib/liblaplace.so
 
+purge: clean
+	rm -f /usr/lib/liblaplace.so
 
-
-
+.PHONY: purge clean install

@@ -13,7 +13,7 @@ int main()
 	PID Regler(4.62, 0.17829, 0.12, 0.01);
 	Begrenzer begrenzer(-4,4);
 	ADD adder;
-	Graph graphA(2,0.01, 0.15, 40);
+	Graph graphA(0.02, 0.06, 80);
 
 	graphA.addinput(begrenzer);
 	graphA.addinput(Strecke);

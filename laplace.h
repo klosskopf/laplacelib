@@ -38,11 +38,10 @@ private:
 	const double taufloesung;
 	const double yaufloesung;
 	const int ymax;
-	unsigned int chnr;
 	const std::string chnnllkptbl[4] = {".","x","o","*"};
 	double time=0;
 public:
-	Graph(unsigned int chnr, double taufloesung, double yaufloesung, unsigned int ymax);
+	Graph(double taufloesung, double yaufloesung, unsigned int ymax);
 	void magic(double dt);
 };
 
@@ -52,6 +51,7 @@ private:
 	std::list<double> gains;
 	double inputnr;
 public:
+	void addinput(Block& inputblock) override;
 	void addinput(Block& inputblock, const double gain);
 	void magic(double dt);
 };
