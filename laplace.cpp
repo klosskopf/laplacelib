@@ -11,6 +11,15 @@ double Block::output()const
     return out;
 }
 
+/**
+ * @brief Derivates the Array values
+ * 
+ * @param Array The Array do derive
+ * @param newval
+ * @param bin 
+ * @param bis 
+ * @param dt 
+ */
 void System::derivate(double Array[], double newval, int bin, int bis, double dt)
 {
     if (bin != bis)

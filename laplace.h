@@ -9,10 +9,10 @@ class Block
 protected:
 	double out=0;
 	std::list<Block*> in;
-public:
-	virtual void magic(double dt)=0;
-	virtual void addinput(Block& inputblock);
 	double output()const;
+public:
+	virtual void magic(double dt)=0;			//this computes the block. Call it once every cycle. The order has a effect, but it should be neglectible
+	virtual void addinput(Block& inputblock);	//adds another input to the block. Responisibility is not transfered. You still need to delete every single one
 };
 
 class System: public Block
