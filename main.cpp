@@ -1,7 +1,7 @@
 #include <string>
 #include "laplace.h"
 
-//This is a example showcase of a
+//This is a example showcase
 
 #define MAXTIME 3
 #define DELTAT 0.000001
