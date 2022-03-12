@@ -4,80 +4,86 @@
 #include <list>
 #include <string>
 
-class Block
+//Base building block
+class clBlock
 {
 protected:
 	double out=0;
-	std::list<Block*> in;
+	std::list<clBlock*> inputs;
 public:
-	virtual void magic(double dt)=0;
-	virtual void addinput(Block& inputblock);
 	double output()const;
+	virtual void magic(double dt)=0;			//this computes the block. Call it once every cycle. The order has a effect, but it should be neglectible
+	virtual void addInput(clBlock& inputBlock);	//adds another input to the block. Responisibility is not transfered. You still need to delete every single one
 };
 
-class System: public Block
+//Laplace-System
+class clSystem: public clBlock
 {
 private:
-	unsigned int gradb;
-	unsigned int grada;
-	double* y = NULL;//y(t) und seine Ableitungen
-	double* u = NULL;//u(t) und seine Ableitungen
-	double* b = NULL;
-	double* a = NULL;
-	void derivate(double Array[], double newval, int bin, int bis, double dt);
+	unsigned int orderB; //number of b coeffs -1
+	unsigned int orderA; //number of a coeffs -1
+	double* y = NULL; //y(0) and its derivatives
+	double* u = NULL; //u(0) and its derivatives
+	double* b = NULL; //b-coefficients
+	double* a = NULL; //a-coefficients
+	void derivate(double array[], double newVal, int k, int order, double dt);
 public:
-	System(unsigned int gradb, unsigned int grada, const double* b, const double* a);
-	virtual ~System();
+	clSystem(unsigned int orderB, unsigned int orderA, const double* b, const double* a);
+	virtual ~clSystem();
 	void magic(double dt);
 };
 
-//taufloesung, yaufloesung, ymax
-class Graph: public Block
+//Comandline-Plot
+class clGraph: public clBlock
 {
 private:
-	const double taufloesung;
-	const double yaufloesung;
-	const int ymax;
-	const std::string chnnllkptbl[4] = {".","x","o","*"};
+	const double tRes;
+	const double yRes;
+	const int yMax;private:
+	std::list<char> markers;
 	double time=0;
 public:
-	Graph(double taufloesung, double yaufloesung, unsigned int ymax);
+	clGraph(double tRes, double yRes, double yMax);
+	void addInput(clBlock& inputblock, const char marker);
 	void magic(double dt);
 };
 
-class ADD : public Block
+//Addition, Gain and Substraction
+class clAdd : public clBlock
 {
 private:
 	std::list<double> gains;
-	double inputnr;
 public:
-	void addinput(Block& inputblock) override;
-	void addinput(Block& inputblock, const double gain);
+	void addInput(clBlock& inputBlock) override;
+	void addInput(clBlock& inputBlock, const double gain);
 	void magic(double dt);
 };
 
-class Begrenzer : public Block
+//Limit input Value
+class clLimiter : public clBlock
 {
 private:
 	double max=10;
 	double min=10;
 public:
-	Begrenzer(const double min, const double max);
+	clLimiter(const double min, const double max);
 	void magic(double dt);
 };
 
-class PID : public Block
+//parametrize a System as a PID
+class clPid : public clBlock
 {
 private:
-	System* system=NULL;
+	clSystem* system=NULL;
 public:
-	PID(double kp, double Tn, double Tv, double Tr);
-	virtual ~PID();
-	virtual void addinput(Block& inputblock) override;
+	clPid(double Kp, double Ki, double Kd);
+	virtual ~clPid();
+	virtual void addInput(clBlock& inputBlock) override;
 	void magic(double dt);
 };
 
-class Function : public Block
+//Outputs a function
+class clFunction : public clBlock
 {
 private:
 	double time=0;

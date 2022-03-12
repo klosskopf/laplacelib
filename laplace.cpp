@@ -2,189 +2,311 @@
 #include <string.h>
 #include <iostream>
 
-void Block::addinput(Block& inputblock)
+/**
+ * @brief add a input block, but not all blocks use all inputs. Most only one
+ * 
+ * @param inputBlock the new inputBlock
+ */
+void clBlock::addInput(clBlock& inputBlock)
 {
-    in.push_back(&inputblock);
+    inputs.push_back(&inputBlock);
 }
-double Block::output()const
+
+/**
+ * @brief return the current output
+ * 
+ * @return double value
+ */
+double clBlock::output()const
 {
     return out;
 }
 
-void System::derivate(double Array[], double newval, int bin, int bis, double dt)
+/**
+ * @brief calculate the derivative upto order
+ * 
+ * @param array array with old derivative values
+ * @param newVal The new value
+ * @param k The current level. Start with 0
+ * @param order number of deviations to calculate
+ * @param dt delta t
+ */
+void clSystem::derivate(double array[], double newVal, int k, int order, double dt)
 {
-    if (bin != bis)
+    if (k != order)
     {
-        derivate(Array, (newval - Array[bin]) / dt, bin + 1, bis, dt);
+        derivate(array, (newVal - array[k]) / dt, k + 1, order, dt);
     }
-    Array[bin] = newval;
+    array[k] = newVal;
 }
-System::System(unsigned int gradb, unsigned int grada, const double* b, const double* a)
+
+/**
+ * @brief Instantiate a new Laplace-System
+ * 
+ * @param orderB order of the dividend-polynomial
+ * @param orderA order of the divisor-polynomial
+ * @param b coeffs (b0 is b[0])
+ * @param a coeffs (a0 is a[0])
+ */
+clSystem::clSystem(unsigned int orderB, unsigned int orderA, const double* b, const double* a)
 {
-    for (int i = gradb; (i > 0) && (b[i] == 0); i--)
+    for (int i = orderB; (i > 0) && (b[i] == 0); i--)
     {
-        gradb = i - 1;
+        orderB = i - 1;
     }
-    for (int i = grada; (i > 0)&&(a[i] == 0); i--)
+    for (int i = orderA; (i > 0)&&(a[i] == 0); i--)
     {
-        grada = i-1;
+        orderA = i-1;
     }
-    this->grada = grada;
-    this->gradb = gradb;
-    this->b = new double[gradb + 1];
-    this->a = new double[grada + 1];
-    this->u = new double[gradb + 1];
-    this->y = new double[grada + 1];
-    memcpy(this->b, b, (gradb + 1) * 8);
-    memcpy(this->a, a, (grada + 1) * 8);
-    memset(this->u, 0, (gradb + 1) * 8);
-    memset(this->y, 0, (grada + 1) * 8);
+    this->orderA = orderA;
+    this->orderB = orderB;
+    this->b = new double[orderB + 1];
+    this->a = new double[orderA + 1];
+    this->u = new double[orderB + 1];
+    this->y = new double[orderA + 1];
+    memcpy(this->b, b, (orderB + 1) * 8);
+    memcpy(this->a, a, (orderA + 1) * 8);
+    memset(this->u, 0, (orderB + 1) * 8);
+    memset(this->y, 0, (orderA + 1) * 8);
 }
-System::~System() {
+
+/**
+ * @brief Destroy the cl System::cl System object
+ * 
+ */
+clSystem::~clSystem() {
     if (a != NULL)delete a;
     if (b != NULL)delete b;
     if (y != NULL)delete y;
     if (u != NULL)delete u;
 }
-void System::magic(double dt)
+
+/**
+ * @brief calculate a new system value
+ * 
+ * @param dt deltat
+ */
+void clSystem::magic(double dt)
 {
     double newy;
-    if (in.size())derivate(u, in.front()->output(), 0, gradb, dt);
+    if (inputs.size()) derivate(u, inputs.front()->output(), 0, orderB, dt);
     newy = 0;
-    for (unsigned int koefb = 0; koefb < (gradb + 1); koefb++)
+    for (unsigned int koefb = 0; koefb < (orderB + 1); koefb++)
     {
         newy += (b[koefb] * u[koefb]);
     }
-    for (unsigned int koefa = 0; koefa < grada; koefa++)
+    for (unsigned int koefa = 0; koefa < orderA; koefa++)
     {
         newy -= (a[koefa] * y[koefa]);
     }
-    y[grada] = newy / a[grada];
-    for (unsigned int koefn = grada; koefn > 0; koefn--)
+    y[orderA] = newy / a[orderA];
+    for (unsigned int koefn = orderA; koefn > 0; koefn--)
     {
         y[koefn - 1] += (y[koefn] * dt);
     }
     out=y[0];
 }
 
-Graph::Graph(double taufloesung, double yaufloesung, unsigned int ymax) : taufloesung(taufloesung), yaufloesung(yaufloesung), ymax(ymax){}
-void Graph::magic(double dt)
+/**
+ * @brief Instantiate a new Graph (only ever use one)
+ * 
+ * @param tRes vertical resolution of one char (time flows down)
+ * @param yRes horizontal resolution of one char
+ * @param yMax Max expected horizontal value
+ */
+clGraph::clGraph(double tRes, double yRes, double yMax) : tRes(tRes), yRes(yRes), yMax(yMax/yRes){}
+
+/**
+ * @brief add a new input to graph
+ * 
+ * @param inputBlock the input block
+ * @param marker the marker used in graph
+ */
+void clGraph::addInput(clBlock& inputBlock, const char marker)
+{
+    inputs.push_back(&inputBlock);
+    markers.push_back(marker);
+}
+
+/**
+ * @brief draw graph
+ * 
+ * @param dt 
+ */
+void clGraph::magic(double dt)
 {
     time+=dt;
     std::cout.setf(std::ios::fixed, std::ios::floatfield);
     std::cout.precision(4);
-    std::string outputpixel;
-    static double tdelay = 0;
-    if (tdelay > taufloesung)
+    std::string outputPixel;
+    static double tDelay = 0;
+    if (tDelay > tRes)
     {
-        tdelay = 0;
-        for (int i = -ymax; i < ymax; i++)
+        tDelay = 0;
+        for (int i = -yMax; i < yMax; i++)
         {
             if (i == 0)
             {
-                outputpixel = "|";
+                outputPixel = "|";
             }
             else
             {
-                outputpixel = " ";
+                outputPixel = " ";
             }
-            int eingang=0;
-            for (Block* block : in)
+            int input=0;
+
+            std::list<clBlock*>::iterator blockIt;
+            std::list<char>::iterator markerIt;
+            for (blockIt = inputs.begin(), markerIt = markers.begin(); (blockIt != inputs.end()) && (markerIt != markers.end()) ; blockIt++, markerIt++)
             {
-                if ((i == (int)(block->output() / yaufloesung)) && (eingang < 4))
+                if ((i == (int)((*blockIt)->output() / yRes)) && (input < 4))
                 {
-                    outputpixel = chnnllkptbl[eingang];
+                    outputPixel = (*markerIt);
                 }
-                eingang++;
+                input++;
             }
-            std::cout << outputpixel;
+            std::cout << outputPixel;
         }
-        std::cout << time << " ";
-        for (Block* eingang:in)
+        std::cout << "time:" << time << " ";
+
+        std::list<clBlock*>::iterator blockIt;
+        std::list<char>::iterator markerIt;
+        for (blockIt = inputs.begin(), markerIt = markers.begin(); (blockIt != inputs.end()) && (markerIt != markers.end()) ; blockIt++, markerIt++)
         {
-            std::cout << eingang->output() << " ";
+            std::cout << (*markerIt) << ": " << (*blockIt)->output() << " ";
         }
         std::cout << std::endl;
     }
     else
     {
-        tdelay += dt;
+        tDelay += dt;
     }
-    if (in.size())out = in.front()->output();
+    if (inputs.size())out = inputs.front()->output();
 }
 
-void ADD::addinput(Block& inputblock)
+/**
+ * @brief add a input with gain 1
+ * 
+ * @param inputBlock input block
+ */
+void clAdd::addInput(clBlock& inputBlock)
 {
-    addinput(inputblock, 1);
+    addInput(inputBlock, 1);
 }
-void ADD::addinput(Block& inputblock, const double gain)
+
+/**
+ * @brief add a input with custom gain
+ * 
+ * @param inputBlock input block
+ * @param gain 
+ */
+void clAdd::addInput(clBlock& inputBlock, const double gain)
 {
-    in.push_back(&inputblock);
+    inputs.push_back(&inputBlock);
     gains.push_back(gain);
 }
-void ADD::magic(double dt)
+
+/**
+ * @brief perform additions
+ * 
+ * @param dt deltat
+ */
+void clAdd::magic(double dt)
 {
-    double zwischen = 0;
-    int i=0;
-    std::list<Block*>::iterator blockit;
-    std::list<double>::iterator gainit;
-    for (blockit = in.begin(), gainit = gains.begin(); (blockit != in.end()) && (gainit != gains.end()) ; blockit++, gainit++)
+    double temp = 0;
+    std::list<clBlock*>::iterator blockIt;
+    std::list<double>::iterator gainIt;
+    for (blockIt = inputs.begin(), gainIt = gains.begin(); (blockIt != inputs.end()) && (gainIt != gains.end()) ; blockIt++, gainIt++)
     {
-        zwischen += ((*gainit) * (*blockit)->output());
-        if (++i==inputnr) break;
+        temp += ((*gainIt) * (*blockIt)->output());
     }
-    out = zwischen;
+    out = temp;
 }
 
-Begrenzer::Begrenzer(const double min, const double max) : max(max), min(min) {}
-void Begrenzer::magic(double dt)
+/**
+ * @brief Instantiate a new limiter
+ * 
+ * @param min Lower limit
+ * @param max Upper limit
+ */
+clLimiter::clLimiter(const double min, const double max) : max(max), min(min) {}
+
+/**
+ * @brief perform limit
+ * 
+ * @param dt deltat
+ */
+void clLimiter::magic(double dt)
 {
-    double zwischen=0;
-    if (in.size())zwischen = in.front()->output();
-    if (zwischen > max)zwischen = max;
-    if (zwischen < min)zwischen = min;
-    out = zwischen;
+    double temp=0;
+    if (inputs.size())temp = inputs.front()->output();
+    if (temp > max)temp = max;
+    if (temp < min)temp = min;
+    out = temp;
 }
 
-PID::PID(double kp, double Tn, double Tv, double Tr)
+/**
+ * @brief initialize a PID System
+ * 
+ * @param Kp proportional coeff
+ * @param Ki integral coeff
+ * @param Kd derivative coeff
+ */
+clPid::clPid(double Kp, double Ki, double Kd)
 {
-    if ((Tn == 0) && (Tv == 0) && (Tr == 0))
+    if ((Kp != 0) && (Ki == 0))
     {
-        double b[1] = { kp };
+        double b[2] = {Kp, Kd};
         double a[1] = { 1 };
-        system = new System(0,0,b,a);
-    }
-    else if (Tn == 0)
-    {
-        double b[2] = { kp, kp*Tv };
-        double a[2] = { 1, Tr };
-        system = new System(1,1,b,a);
+        system = new clSystem(1,0,b,a);
     }
     else
     {
-        double b[3] = { kp, kp * Tn, kp * Tn * Tv };
-        double a[3] = { 0, Tn, Tn * Tr };
-        system = new System(2,2,b,a);
+        double b[3] = {Ki, Kp, Kd};
+        double a[2] = { 0, 1 };
+        system = new clSystem(2,1,b,a);
     }
 }
-PID::~PID()
+
+/**
+ * @brief Destroy the cl Pid::cl Pid object
+ * 
+ */
+clPid::~clPid()
 {
     if(system) delete system;
     system = NULL;	
 }
-void PID::addinput(Block& inputblock)
+
+/**
+ * @brief add a new input
+ * 
+ * @param inputBlock new input block
+ */
+void clPid::addInput(clBlock& inputBlock)
 {
-    if (system) system->addinput(inputblock);
+    if (system) system->addInput(inputBlock);
 }
-void PID::magic(double dt)
+
+/**
+ * @brief perform a pid-calculation
+ * 
+ * @param dt deltat
+ */
+void clPid::magic(double dt)
 {
     system->magic(dt);
     out=system->output();
 }
 
-void Function::magic(double dt)
+/**
+ * @brief defines the function
+ * 
+ * @param dt deltat
+ */
+void clFunction::magic(double dt)
 {
     time += dt;
-    if (time > 0.3)out = 3;
+    if (time > 0.3)out = 1;
     else out = 0;
 }
