@@ -3,36 +3,35 @@
 
 //This is a example showcase of a
 
-#define SIMDAUER 3
+#define MAXTIME 3
 #define DELTAT 0.000001
 
 int main()
 {
-	Function generator;
-	double s_b[1] = {1.027};
-	double s_a[5] = {1, 0.3345, 0.03138, 0.0010193, 0.00001096};
-	System Strecke(0, 4, s_b, s_a);
-	PID Regler(4.62, 0.17829, 0.12, 0.01);
-	Begrenzer begrenzer(-4, 4);
-	ADD adder;
-	Graph graphA(0.02, 0.06, 80);
+	clFunction generator;
+	double b[1] = {1.027};
+	double a[5] = {1, 0.3345, 0.03138, 0.0010193, 0.00001096};
+	clSystem system(0, 4, b, a);
+	clPid controller(4.62,25.912,0.5544);
+	clLimiter limiter(-5, 5);
+	clAdd adder;
+	clGraph graphA(0.02, 0.06, 5);
 
-	graphA.addinput(begrenzer);
-	graphA.addinput(Strecke);
-	adder.addinput(generator, 1);
-	adder.addinput(Strecke, -1);
-	Regler.addinput(adder);
-	begrenzer.addinput(Regler);
-	Strecke.addinput(begrenzer);
+	graphA.addInput(limiter,'u');
+	graphA.addInput(system,'y');
+	adder.addInput(generator, 1);
+	adder.addInput(system, -1);
+	controller.addInput(adder);
+	limiter.addInput(controller);
+	system.addInput(limiter);
 
-	for (double time = 0; time < SIMDAUER; time += DELTAT)
+	for (double time = 0; time < MAXTIME; time += DELTAT)
 	{
 		graphA.magic(DELTAT);
 		adder.magic(DELTAT);
-		Strecke.magic(DELTAT);
-		Regler.magic(DELTAT);
-		begrenzer.magic(DELTAT);
+		system.magic(DELTAT);
+		controller.magic(DELTAT);
+		limiter.magic(DELTAT);
 		generator.magic(DELTAT);
 	}
-	getchar();
 }

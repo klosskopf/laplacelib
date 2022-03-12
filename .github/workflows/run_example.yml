@@ -1,0 +1,26 @@
+name: Makefile CI
+
+on:
+  push:
+  pull_request:
+  release:
+    types: [published, created, edited]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: install tools
+      run: sudo apt-get install make g++
+    - name: run make
+      run: make
+    - name: run test
+      run: ./rtsim.out
+      
+    - name: upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: executable
+        path: |
+          rtsim.out
+      
